@@ -5,6 +5,8 @@ const { authenticate } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // Public routes
+router.post('/register', AuthController.register);
+router.post('/login', AuthController.login);
 router.post('/validate', AuthController.validateToken);
 router.post('/refresh', AuthController.refreshToken);
 

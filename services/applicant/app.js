@@ -4,6 +4,7 @@ const { Kafka } = require('kafkajs');
 const jwt = require('jsonwebtoken');
 const applicantRoutes = require('./routes/applicantRoutes');
 const connectDB = require('./config/db');
+const AuthService = require('../../shared/authService');
 
 // --- 1. Initialization ---
 const app = express();
@@ -18,8 +19,11 @@ const kafka = new Kafka({
 const producer = kafka.producer();
 const consumer = kafka.consumer({ groupId: 'applicant-service-group' });
 
+// Initialize Auth Service
+const authService = new AuthService();
+
 // Authentication Middleware
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -29,8 +33,9 @@ const authMiddleware = (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    // Validate token with auth service
+    const validationResult = await authService.validateToken(token);
+    req.user = validationResult.user;
     next();
   } catch (error) {
     return res.status(401).json({
@@ -41,7 +46,7 @@ const authMiddleware = (req, res, next) => {
 };
 
 // --- 3. Database Connection ---
-connectDB();
+connectDB(process.env.MONGO_URI);
 
 // --- 4. Middleware ---
 app.use(bodyParser.json());

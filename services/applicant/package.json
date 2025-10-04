@@ -29,7 +29,8 @@
     "mongoose": "^8.4.4",
     "kafkajs": "^2.2.4",
     "jsonwebtoken": "^9.0.0",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "axios": "^1.6.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

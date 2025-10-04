@@ -1,38 +1,72 @@
 const jwt = require('jsonwebtoken');
-const config = require("../shared/config");
+const config = require("../../shared/config");
 
 class TokenService {
-  static createToken(payload, options = {}) {
-    const { expiresIn = '1h' } = options;
-    return jwt.sign(payload, config.jwtSecret, { expiresIn });
-  }
-
-  static createTokenForUser(user) {
+  static generateTokens(user) {
     const payload = {
       id: user._id,
       email: user.email,
       role: user.role
     };
-    return this.createToken(payload);
+
+    const accessToken = jwt.sign(payload, config.jwtSecret, { expiresIn: '1h' });
+    const refreshToken = jwt.sign(payload, config.jwtRefreshSecret, { expiresIn: '7d' });
+
+    return { accessToken, refreshToken };
   }
 
-  static validateToken(token) {
+  static verifyAccessToken(token) {
     try {
       return jwt.verify(token, config.jwtSecret);
     } catch (error) {
-      throw new Error('Invalid Token');
+      throw new Error('Invalid Access Token');
     }
   }
 
-  static refreshToken(token) {
+  static verifyRefreshToken(token) {
     try {
-      const decoded = this.validateToken(token);
+      return jwt.verify(token, config.jwtRefreshSecret);
+    } catch (error) {
+      throw new Error('Invalid Refresh Token');
+    }
+  }
+
+  static async refreshTokens(refreshToken) {
+    try {
+      const decoded = this.verifyRefreshToken(refreshToken);
+      
       // Remove timing fields before creating new token
       delete decoded.iat;
       delete decoded.exp;
-      return this.createToken(decoded);
+      
+      const newAccessToken = jwt.sign(decoded, config.jwtSecret, { expiresIn: '1h' });
+      const newRefreshToken = jwt.sign(decoded, config.jwtRefreshSecret, { expiresIn: '7d' });
+
+      return { accessToken: newAccessToken, newRefreshToken };
     } catch (error) {
-      throw new Error('Invalid Token for Refresh');
+      throw new Error('Invalid Refresh Token');
+    }
+  }
+
+  static generateServiceToken(serviceName) {
+    const payload = {
+      service: serviceName,
+      type: 'service',
+      iat: Math.floor(Date.now() / 1000)
+    };
+    
+    return jwt.sign(payload, config.jwtSecret, { expiresIn: '24h' });
+  }
+
+  static verifyServiceToken(token) {
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret);
+      if (decoded.type !== 'service') {
+        throw new Error('Invalid service token');
+      }
+      return decoded;
+    } catch (error) {
+      throw new Error('Invalid Service Token');
     }
   }
 }

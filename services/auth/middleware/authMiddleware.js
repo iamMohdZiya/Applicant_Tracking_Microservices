@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
-const config = require("../shared/config");
-
+const config = require("../../shared/config");
 
 const validateAuthToken = (token) => {
   try {
@@ -11,17 +10,15 @@ const validateAuthToken = (token) => {
 };
 
 const validateServiceToken = (token) => {
-  const serviceTokens = [
-    config.itemsServiceToken,
-    config.ordersServiceToken,
-    config.usersServiceToken
-  ].filter(Boolean);
-  
-  if (!serviceTokens.includes(token)) {
+  try {
+    const decoded = jwt.verify(token, config.jwtSecret);
+    if (decoded.type !== 'service') {
+      throw new Error('Invalid Service Token');
+    }
+    return decoded;
+  } catch (error) {
     throw new Error('Invalid Service Token');
   }
-  
-  return { role: 'service' };
 };
 
 const getTokenFromHeader = (req) => {

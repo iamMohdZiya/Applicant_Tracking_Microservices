@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 // --- Configuration Imports ---
 const connectDB = require('./config/db');
 const jobRoutes = require('./routes/jobRoutes');
+const AuthService = require('../../shared/authService');
 
 // --- Environment Variables ---
 const PORT = process.env.PORT || 3000;
@@ -20,14 +21,17 @@ const kafka = new Kafka({
 const producer = kafka.producer();
 const consumer = kafka.consumer({ groupId: 'job-service-group' });
 
+// Initialize Auth Service
+const authService = new AuthService();
+
 // --- Database Connection ---
-connectDB();
+connectDB(process.env.MONGO_URI);
 
 // --- Initialize Express App ---
 const app = express();
 
 // Authentication Middleware
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -37,8 +41,9 @@ const authMiddleware = (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    // Validate token with auth service
+    const validationResult = await authService.validateToken(token);
+    req.user = validationResult.user;
     next();
   } catch (error) {
     return res.status(401).json({

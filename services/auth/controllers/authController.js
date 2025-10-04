@@ -164,6 +164,55 @@ class AuthController {
       });
     }
   }
+
+  static async validateServiceToken(req, res) {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'Service token is required'
+        });
+      }
+
+      const decoded = TokenService.verifyServiceToken(token);
+      res.json({
+        valid: true,
+        service: decoded.service
+      });
+    } catch (error) {
+      res.status(401).json({
+        error: 'Invalid Service Token',
+        message: error.message
+      });
+    }
+  }
+
+  static async generateToken(req, res) {
+    try {
+      const { userId, role } = req.body;
+      
+      if (!userId || !role) {
+        return res.status(400).json({
+          error: 'Bad Request',
+          message: 'userId and role are required'
+        });
+      }
+
+      // Generate a service token for the requesting service
+      const serviceToken = TokenService.generateServiceToken(req.user.service);
+      
+      res.json({
+        serviceToken,
+        message: 'Service token generated successfully'
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: error.message
+      });
+    }
+  }
 }
 
 module.exports = AuthController;

@@ -112,6 +112,18 @@ services:
       - kafka
       - auth-service
 
+  admin-service:
+    build:
+      context: ./services/admin
+      dockerfile: Dockerfile
+    container_name: admin-service
+    ports:
+      - "6000:6000"
+    environment:
+      JWT_SECRET: your_jwt_secret_key
+    depends_on:
+      - auth-service
+
   # --- 5. API Gateway (Nginx) ---
   api-gateway:
     image: nginx:alpine
@@ -120,12 +132,13 @@ services:
       - "80:80" # Expose the gateway on port 80 publicly
     volumes:
       # Mount your Nginx configuration file from the local gateway folder
-      - ./gateway/default.conf:/etc/nginx/conf.d/default.conf
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf
     # Nginx relies on all services being up to proxy to them
     depends_on:
       - job-service
       - company-service
       - applicant-service
+      - admin-service
     restart: always
 
 # Define the volume for persistent MongoDB data
