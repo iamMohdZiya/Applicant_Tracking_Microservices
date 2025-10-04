@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables
+.env
+**/.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+coverage/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Docker
+.docker/
+docker-volumes/
+
+# MongoDB data
+data/
+mongo-data/
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Temp files
+*.tmp
+*.temp
+.temp/
+.cache/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Debug
+.debug/
+debug.log
+
+# Application specific
+uploads/
+**/uploads/
+
+# Package manager locks
+# Uncomment if you want to ignore package-lock.json
+# package-lock.json
+# yarn.lock

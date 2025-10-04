@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # --- 1. Database ---
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    # Persist data outside the container
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      # Use a simpler local environment variable for the connection string
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: password
+    restart: always
+
+  # --- 2. Kafka Dependencies (Zookeeper) ---
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      # Standard settings for Zookeeper
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  # --- 3. Kafka Messaging Broker ---
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      # Kafka's listener configuration
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # IMPORTANT: This listener is used by the Node.js services inside the network
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # --- 4. Microservices ---
+  auth-service:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: mongodb://user:password@mongodb:27017/ats_auth
+      JWT_SECRET: your_jwt_secret_key
+      JWT_REFRESH_SECRET: your_jwt_refresh_secret_key
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - mongodb
+      - kafka
+
+  job-service:
+    build:
+      context: ./services/job  # Path to the job service folder
+      dockerfile: Dockerfile
+    container_name: job-service
+    ports:
+      - "3000:3000"
+    environment:
+      # Connect to MongoDB via the service name 'mongodb'
+      MONGO_URI: mongodb://user:password@mongodb:27017/ats_jobs
+      # Ensures the job service can resolve the Kafka service name
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: your_jwt_secret_key
+    depends_on:
+      - mongodb
+      - kafka
+      - auth-service
+
+  company-service:
+    build:
+      context: ./services/company # Path to the company service folder
+      dockerfile: Dockerfile
+    container_name: company-service
+    ports:
+      - "4000:4000"
+    environment:
+      MONGO_URI: mongodb://user:password@mongodb:27017/ats_companies
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: your_jwt_secret_key
+    depends_on:
+      - mongodb
+      - kafka
+      - auth-service
+
+  applicant-service:
+    build:
+      context: ./services/applicant # Path to the applicant service folder
+      dockerfile: Dockerfile
+    container_name: applicant-service
+    ports:
+      - "5000:5000"
+    environment:
+      MONGO_URI: mongodb://user:password@mongodb:27017/ats_applicants
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: your_jwt_secret_key
+    depends_on:
+      - mongodb
+      - kafka
+      - auth-service
+
+  # --- 5. API Gateway (Nginx) ---
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway
+    ports:
+      - "80:80" # Expose the gateway on port 80 publicly
+    volumes:
+      # Mount your Nginx configuration file from the local gateway folder
+      - ./gateway/default.conf:/etc/nginx/conf.d/default.conf
+    # Nginx relies on all services being up to proxy to them
+    depends_on:
+      - job-service
+      - company-service
+      - applicant-service
+    restart: always
+
+# Define the volume for persistent MongoDB data
+volumes:
+  mongo-data:

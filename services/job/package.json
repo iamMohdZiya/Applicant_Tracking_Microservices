@@ -1,0 +1,37 @@
+{
+  "name": "ats-job-posting-service",
+  "version": "1.0.0",
+  "description": "Microservice for managing job postings in the Applicant Tracking System.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prestart:prod": "npm install --production",
+    "start:prod": "NODE_ENV=production node server.js",
+    "docker:build": "docker build -t ats-job-service .",
+    "docker:run": "docker run -p 3000:3000 ats-job-service"
+  },
+  "keywords": [
+    "microservice",
+    "node",
+    "express",
+    "mongodb",
+    "ats"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongoose": "^8.4.4",
+    "kafkajs": "^2.2.4",
+    "jsonwebtoken": "^9.0.0",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "nodemon": "^3.1.4"
+  }
+}
